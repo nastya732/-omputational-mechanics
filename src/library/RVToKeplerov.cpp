@@ -1,44 +1,43 @@
 #include <cmath>
-#include <Eigen/Dense>
 #include "RVToKeplerov.hpp"
 
-KeplerovElements RVToKeplerov(const Vector_3D& r, const Vector_3D& v, const double mu) {
+KeplerovElements RVToKeplerov(const Cartesian& state, const double mu) {
 
-    const double r_mod = r.norm();
-    const double v_sq  = v.squaredNorm();     // квадрат модуля скорости
-    const double rv    = r.dot(v);            // скалярное произведение r·v
+    const double r_mod = (state.r).norm();
+    const double v_sq  = (state.v).squaredNorm();     // квадрат модуля скорости
+    const double rv    = (state.r).dot((state.v));            // скалярное произведение r·v
 
     // Вектор удельного момента импульса
-    const Vector_3D L = r.cross(v);
+    const Eigen::Vector3d L = (state.r).cross((state.v));
     const double L_mod = L.norm();
 
     // Большая полуось через энергию
     const double a = 1.0 / (2.0 / r_mod - v_sq / mu);
 
     // Вектор эксцентриситета
-    const Vector_3D e = ((v_sq - mu / r_mod) * r - rv * v) / mu;
+    const Eigen::Vector3d e = ((v_sq - mu / r_mod) * (state.r) - rv * (state.v)) / mu;
     const double e_norm = e.norm();
 
     // Наклонение
     const double i = std::acos(L.z() / L_mod);
     // Вектор линии узлов
-    const double z_L_norm = Vector_3D::UnitZ().cross(L).norm();
-    const Vector_3D N = z_L_norm != 0 ? Vector_3D (Vector_3D::UnitZ().cross(L) / z_L_norm) : Vector_3D (Vector_3D::UnitX());   // результат = условие ? значение_если_истина : значение_если_ложь;
+    const double z_L_norm = Eigen::Vector3d::UnitZ().cross(L).norm();
+    const Eigen::Vector3d N = z_L_norm != 0 ? Eigen::Vector3d (Eigen::Vector3d::UnitZ().cross(L) / z_L_norm) : Eigen::Vector3d (Eigen::Vector3d::UnitX());   // результат = условие ? значение_если_истина : значение_если_ложь;
     
     // Долгота восходящего узла
     const double RAAN = atan2(N.y(), N.x());
-    const Vector_3D e1 = N;
-    const Vector_3D e2 = (L).cross(N).normalized();
+    const Eigen::Vector3d e1 = N;
+    const Eigen::Vector3d e2 = (L).cross(N).normalized();
 
     // введём базис в орбитальной плоскости g
-    const Vector_3D g1 = e_norm != 0 ? (e/ e_norm) : e1;
-    const Vector_3D g2 = (L/L_mod).cross(g1);
+    const Eigen::Vector3d g1 = e_norm != 0 ? (e/ e_norm) : e1;
+    const Eigen::Vector3d g2 = (L/L_mod).cross(g1);
     
     // Аргумент перицентра
     const double w = atan2(g1.dot(e2), g1.dot(e1));
 
     // Истинная аномалия
-    const double nu = atan2(((r).dot(g2)), ((r).dot(g1)));
+    const double nu = atan2((((state.r)).dot(g2)), (((state.r)).dot(g1)));
 
     return KeplerovElements{
         .a    = a,
